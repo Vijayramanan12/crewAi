@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontend Digest — Viewer</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Literata:ital,wght@0,300;0,400;1,300;1,400&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/tokyo-night-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0d0d0f;
+      --bg2: #141417;
+      --bg3: #1c1c21;
+      --border: #2a2a32;
+      --border2: #383845;
+      --text: #e8e6e0;
+      --text-muted: #7a7a8c;
+      --text-dim: #4a4a5a;
+      --accent: #e8ff47;
+      --accent2: #47ffe8;
+      --accent3: #ff6b47;
+      --chat-user: #1e2235;
+      --chat-ai: #161619;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Literata', Georgia, serif;
+      --font-mono: 'DM Mono', monospace;
+      --sidebar-w: 300px;
+      --chat-w: 340px;
+      --header-h: 54px;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.7;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 3px;
+    }
+
+    /* Header */
+    #header {
+      height: var(--header-h);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      flex-shrink: 0;
+      background: var(--bg);
+      z-index: 100;
+    }
+
+    #logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    #logo span {
+      color: var(--accent);
+    }
+
+    #search-wrap {
+      flex: 1;
+      max-width: 400px;
+      position: relative;
+    }
+
+    #search {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 10px 6px 30px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #search:focus {
+      border-color: var(--accent);
+    }
+
+    #search::placeholder {
+      color: var(--text-dim);
+    }
+
+    #search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .hpill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      color: var(--text-muted);
+      background: var(--bg3);
+      white-space: nowrap;
+    }
+
+    .hpill.live {
+      border-color: var(--accent);
+      color: var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .45
+      }
+    }
+
+    #chat-toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    #chat-toggle-btn:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    #chat-toggle-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(71, 255, 232, 0.07);
+    }
+
+    .chat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    /* Layout */
+    #body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: var(--sidebar-w);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      background: var(--bg2);
+      overflow: hidden;
+    }
+
+    #sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .stab {
+      flex: 1;
+      padding: 9px 0;
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      cursor: pointer;
+      text-align: center;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .stab:hover {
+      color: var(--text-muted);
+    }
+
+    .stab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    #sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .report-item {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background .12s;
+      position: relative;
+    }
+
+    .report-item:hover {
+      background: var(--bg3);
+    }
+
+    .report-item.active {
+      background: var(--bg3);
+    }
+
+    .report-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--accent);
+    }
+
+    .ri-date {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .ri-day {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      background: var(--bg);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .ri-title {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .ri-preview {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .ri-meta {
+      display: flex;
+      gap: 6px;
+      margin-top: 5px;
+    }
+
+    .ri-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 3px;
+      background: var(--bg);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    #stats-panel {
+      padding: 14px;
+    }
+
+    .stat-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 5px;
+    }
+
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .lib-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+
+    .lib-name {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text);
+      min-width: 100px;
+    }
+
+    .lib-bar-wrap {
+      flex: 1;
+      background: var(--bg);
+      border-radius: 2px;
+      height: 3px;
+      overflow: hidden;
+    }
+
+    .lib-bar {
+      height: 100%;
+      background: var(--accent2);
+      border-radius: 2px;
+      transition: width .8s cubic-bezier(.23, 1, .32, 1);
+    }
+
+    .lib-count {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      min-width: 14px;
+      text-align: right;
+    }
+
+    .sr-item {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .sr-item:hover {
+      background: var(--bg3);
+    }
+
+    .sr-date {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+
+    .sr-match {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.4;
+      margin-top: 2px;
+    }
+
+    .sr-match mark {
+      background: rgba(232, 255, 71, .15);
+      color: var(--accent);
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    .no-results {
+      padding: 20px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+    }
+
+    /* Main */
+    #main {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-dim);
+    }
+
+    .empty-glyph {
+      font-size: 44px;
+      opacity: .25;
+    }
+
+    .empty-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .empty-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      max-width: 280px;
+      line-height: 1.6;
+    }
+
+    #report-view {
+      flex: 1;
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+    }
+
+    #report-header {
+      padding: 18px 28px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #report-date-display {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 3px;
+    }
+
+    #report-title-display {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    #report-sites-list {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 7px;
+    }
+
+    .site-chip {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+
+    .site-chip:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
+
+    .report-action-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 5px 11px;
+      border-radius: 5px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .report-action-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    #report-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+    }
+
+    /* Markdown */
+    #md-content {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    #md-content h1 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 8px;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    #md-content h2 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 38px;
+      margin-bottom: 10px;
+      padding-left: 11px;
+      border-left: 3px solid var(--accent2);
+    }
+
+    #md-content h3 {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-top: 22px;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    #md-content h4 {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 14px;
+      margin-bottom: 5px;
+    }
+
+    #md-content p {
+      margin-bottom: 12px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    #md-content a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    #md-content a:hover {
+      color: var(--accent2);
+    }
+
+    #md-content strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    #md-content em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    #md-content ul,
+    #md-content ol {
+      padding-left: 18px;
+      margin-bottom: 12px;
+    }
+
+    #md-content li {
+      font-size: 14px;
+      line-height: 1.7;
+      margin-bottom: 3px;
+      color: var(--text);
+    }
+
+    #md-content li::marker {
+      color: var(--accent);
+    }
+
+    #md-content blockquote {
+      border-left: 3px solid var(--accent3);
+      padding: 9px 14px;
+      margin: 18px 0;
+      background: rgba(255, 107, 71, .05);
+      border-radius: 0 6px 6px 0;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    #md-content code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 2px 5px;
+      border-radius: 3px;
+      color: var(--accent2);
+    }
+
+    #md-content pre {
+      background: var(--bg2) !important;
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      padding: 14px;
+      overflow-x: auto;
+      margin: 14px 0;
+      position: relative;
+    }
+
+    #md-content pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .code-lang-label {
+      position: absolute;
+      top: 7px;
+      right: 10px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    #md-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 13px;
+      font-family: var(--font-mono);
+    }
+
+    #md-content th {
+      background: var(--bg3);
+      color: var(--accent);
+      font-weight: 600;
+      padding: 7px 10px;
+      text-align: left;
+      border-bottom: 2px solid var(--accent);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    #md-content td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    #md-content tr:hover td {
+      background: var(--bg3);
+      color: var(--text);
+    }
+
+    #md-content hr {
+      border: none;
+      border-top: 1px solid var(--border2);
+      margin: 32px 0;
+    }
+
+    /* ── Chat Panel ───────────────────────────────────────────── */
+    #chat-resizer {
+      width: 5px;
+      cursor: col-resize;
+      background: transparent;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    #chat-resizer:hover,
+    #chat-resizer.is-resizing {
+      background: var(--accent2);
+    }
+
+    #chat-panel {
+      width: var(--chat-w);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      background: var(--bg2);
+      overflow: hidden;
+      transition: opacity 0.28s ease;
+      /* removed transition for width so dragging is smooth */
+    }
+
+    #chat-panel.hidden {
+      width: 0;
+      opacity: 0;
+      pointer-events: none;
+      border-left: none;
+    }
+
+    #chat-header {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #chat-title {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    #chat-context-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      background: rgba(71, 255, 232, 0.08);
+      border: 1px solid rgba(71, 255, 232, 0.25);
+      color: var(--accent2);
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #chat-scope-toggle {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #chat-scope-toggle:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Suggestions */
+    #chat-suggestions {
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .suggestion-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 1px;
+    }
+
+    .suggestion-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+      text-align: left;
+      line-height: 1.4;
+    }
+
+    .suggestion-chip:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(71, 255, 232, 0.04);
+    }
+
+    /* Messages */
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .chat-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      animation: msgIn .2s ease forwards;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .chat-msg-role {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-dim);
+      padding: 0 2px;
+    }
+
+    .chat-msg.user .chat-msg-role {
+      color: var(--accent);
+    }
+
+    .chat-msg.assistant .chat-msg-role {
+      color: var(--accent2);
+    }
+
+    .chat-bubble {
+      padding: 9px 11px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    .chat-msg.user .chat-bubble {
+      background: var(--chat-user);
+      border: 1px solid #2a3050;
+      color: var(--text);
+      border-radius: 8px 8px 3px 8px;
+    }
+
+    .chat-msg.assistant .chat-bubble {
+      background: var(--chat-ai);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px 8px 8px 3px;
+    }
+
+    /* MD inside chat */
+    .chat-bubble p {
+      font-size: 12.5px;
+      margin-bottom: 7px;
+      line-height: 1.6;
+    }
+
+    .chat-bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .chat-bubble code {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background: rgba(255, 255, 255, .07);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: var(--accent2);
+    }
+
+    .chat-bubble pre {
+      background: rgba(0, 0, 0, .4) !important;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 9px;
+      margin: 7px 0;
+      overflow-x: auto;
+    }
+
+    .chat-bubble pre code {
+      background: none;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .chat-bubble ul,
+    .chat-bubble ol {
+      padding-left: 16px;
+      margin: 6px 0;
+    }
+
+    .chat-bubble li {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .chat-bubble li::marker {
+      color: var(--accent);
+    }
+
+    .chat-bubble strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .chat-bubble em {
+      color: var(--text-muted);
+    }
+
+    .chat-bubble a {
+      color: var(--accent2);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .chat-bubble h3,
+    .chat-bubble h4 {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin: 8px 0 4px;
+    }
+
+    .chat-bubble blockquote {
+      border-left: 2px solid var(--accent3);
+      padding: 4px 9px;
+      margin: 7px 0;
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 11.5px;
+    }
+
+    .chat-bubble table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0;
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .chat-bubble th {
+      color: var(--accent);
+      padding: 4px 7px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .chat-bubble td {
+      padding: 4px 7px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 11px;
+      background: var(--chat-ai);
+      border: 1px solid var(--border);
+      border-radius: 8px 8px 8px 3px;
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: typingPulse 1.2s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: .2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: .4s;
+    }
+
+    @keyframes typingPulse {
+
+      0%,
+      60%,
+      100% {
+        opacity: .2;
+        transform: scale(1)
+      }
+
+      30% {
+        opacity: 1;
+        transform: scale(1.3)
+      }
+    }
+
+    /* Input */
+    #chat-input-area {
+      padding: 9px 11px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg2);
+    }
+
+    #chat-input-row {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    #chat-input {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+      resize: none;
+      min-height: 34px;
+      max-height: 96px;
+      line-height: 1.5;
+      transition: border-color .2s;
+    }
+
+    #chat-input:focus {
+      border-color: var(--accent2);
+    }
+
+    #chat-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    #chat-send {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      background: var(--bg3);
+      color: var(--accent2);
+      cursor: pointer;
+      transition: all .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    #chat-send:hover:not(:disabled) {
+      background: rgba(71, 255, 232, 0.12);
+      border-color: var(--accent2);
+    }
+
+    #chat-send:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+    }
+
+    #chat-footer-note {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 5px;
+    }
+
+    /* Misc */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .fade-up {
+      animation: fadeUp .25s ease forwards;
+    }
+
+    #no-files {
+      padding: 28px 14px;
+      text-align: center;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div id="header">
+    <div id="logo">🌐 Frontend<span>Digest</span></div>
+    <div id="search-wrap">
+      <span id="search-icon">⌕</span>
+      <input id="search" type="text" placeholder="Search techniques, libraries, sites…" autocomplete="off" />
+    </div>
+    <span class="hpill" id="report-count-pill">— reports</span>
+    <span class="hpill live" id="today-pill">Today</span>
+    <button id="chat-toggle-btn">
+      <span class="chat-dot"></span>
+      Ask AI
+    </button>
+  </div>
+
+  <!-- Body -->
+  <div id="body">
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="sidebar-tabs">
+        <button class="stab active" data-tab="reports">Reports</button>
+        <button class="stab" data-tab="analyze">⚡ Analyze</button>
+        <button class="stab" data-tab="stats">Stats</button>
+      </div>
+      <div id="sidebar-content">
+        <div id="tab-reports">
+          <div id="reports-list">
+            <div style="padding:22px;text-align:center">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+        <div id="tab-stats" style="display:none">
+          <div id="stats-panel">
+            <div style="padding:22px;text-align:center">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+        <div id="tab-analyze" style="display:none">
+          <div style="padding:16px;">
+            <div
+              style="font-family:var(--font-display);font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text-muted)">
+              Live Site Analyzer</div>
+            <div
+              style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:inset 0 1px 1px rgba(0,0,0,0.2);">
+              <div
+                style="font-family:var(--font-mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">
+                🌐 Target Website URL</div>
+              <div style="position:relative;">
+                <input id="live-url-input" type="text" placeholder="https://app.example.com"
+                  style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:14px;padding-left:14px;font-family:var(--font-mono);font-size:13px;color:var(--text);outline:none;transition:all 0.2s;box-shadow: 0 0 15px rgba(0,0,0,0.1); border-color: var(--border2);"
+                  onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 10px rgba(232,255,71,0.1)'"
+                  onblur="this.style.borderColor='var(--border2)';this.style.boxShadow='none'" />
+              </div>
+              <div style="display:grid;gap:10px;margin-top:4px;">
+                <button id="btn-live-analyze"
+                  style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:12px;font-family:var(--font-display);font-weight:800;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;box-shadow: 0 4px 0 var(--accent3);">
+                  <span>🔬</span> Quick Structural Scan
+                </button>
+                <button id="btn-deep-research"
+                  style="background:rgba(255,255,255,0.03);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:11px;font-family:var(--font-display);font-weight:700;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;">
+                  <span>🧠</span> Deep AI Research (Slower)
+                </button>
+              </div>
+            </div>
+
+            <div
+              style="margin-top:24px;padding:16px;background:rgba(255,255,255,0.02);border:1px dashed var(--border);border-radius:10px;font-size:11.5px;color:var(--text-dim);line-height:1.7">
+              <div style="color:var(--text-muted);font-weight:600;margin-bottom:6px;">How it works:</div>
+              Our analyst will visit the URL, fetch its source code, and identify libraries, design tokens, and CSS
+              patterns in real-time. Results are cached for 1 hour.
+            </div>
+          </div>
+        </div>
+        <div id="tab-search" style="display:none">
+          <div id="search-results-panel"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main viewer -->
+    <div id="main">
+      <div id="empty-state">
+        <div class="empty-glyph">◈</div>
+        <div class="empty-title">No report open</div>
+        <div class="empty-sub">Select a report from the sidebar, or run the crew to generate your first one.</div>
+        <div
+          style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:6px;background:var(--bg3);padding:7px 14px;border-radius:5px;border:1px solid var(--border)">
+          python -m my_project.main</div>
+      </div>
+      <div id="report-view">
+        <div id="report-header">
+          <div>
+            <div id="report-date-display"></div>
+            <div id="report-title-display">Frontend Digest</div>
+            <div id="report-sites-list"></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="report-action-btn" id="btn-raw">⌗ Raw</button>
+            <button class="report-action-btn" id="btn-copy">⎘ Copy</button>
+          </div>
+        </div>
+        <div id="report-body">
+          <div id="md-content"></div>
+        </div>
+
+        <!-- Analyze Modal -->
+        <div id="analyze-modal"
+          style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,13,15,0.95);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+          <div
+            style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column;">
+            <div
+              style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--text);">🔬 Live
+                Analyzer</div>
+              <button id="close-analyze"
+                style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--text-muted);font-size:16px;cursor:pointer;">×</button>
+            </div>
+            <div id="analyze-url"
+              style="padding:12px 24px;font-family:var(--font-mono);font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border);">
+            </div>
+            <div id="analyze-loading" style="padding:40px;text-align:center;display:none;">
+              <div class="spinner" style="margin:0 auto 12px;"></div>
+              <div style="color:var(--text-muted);font-family:var(--font-mono);font-size:13px;">Analyzing frontend
+                stack...</div>
+            </div>
+            <div id="analyze-results" style="flex:1;overflow-y:auto;padding:24px;opacity:0;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div id="chat-resizer" style="display: none;"></div>
+    <div id="chat-panel" class="hidden">
+
+      <div id="chat-header">
+        <div id="chat-title">
+          ◈ Chat
+          <span id="chat-context-badge">No report open</span>
+        </div>
+        <button id="chat-scope-toggle">All reports</button>
+      </div>
+
+      <div id="chat-suggestions">
+        <div class="suggestion-label">Try asking</div>
+        <button class="suggestion-chip" data-q="What are the most unique CSS techniques in this report?">What are the
+          most unique CSS techniques?</button>
+        <button class="suggestion-chip" data-q="Which libraries appear most and what do they do?">Which libraries appear
+          most often?</button>
+        <button class="suggestion-chip" data-q="Give me a code example I can use today from this report.">Give me a code
+          example I can use today</button>
+        <button class="suggestion-chip" data-q="What experimental browser APIs are used in this report?">What
+          experimental APIs are used?</button>
+      </div>
+
+      <div id="chat-messages">
+        <div class="chat-msg assistant">
+          <div class="chat-msg-role">Digest AI</div>
+          <div class="chat-bubble">
+            Hi! I'm your Frontend Digest assistant. Open a report and ask me anything about the techniques, libraries,
+            or code patterns — or chat across all reports to spot trends. 🌐
+          </div>
+        </div>
+      </div>
+
+      <div id="chat-input-area">
+        <div id="chat-input-row">
+          <textarea id="chat-input" rows="1" placeholder="Ask about techniques, libraries, code…"></textarea>
+          <button id="chat-send" disabled>↑</button>
+        </div>
+        <div id="chat-footer-note">Scope: <span id="scope-label">all reports</span> · Enter to send</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    let activeSlug = null, activeTab = 'reports', allReports = [];
+    let rawMd = '', viewingRaw = false, searchTimeout = null;
+    let chatHistory = [], chatScopeAll = false, chatOpen = false;
+    let isResizing = false;
+
+    const $ = id => document.getElementById(id);
+    const qs = s => document.querySelector(s);
+    const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function hlText(text, q) {
+      if (!q) return escHtml(text);
+      return escHtml(text).replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>');
+    }
+
+    // Load reports list
+    async function loadReports() {
+      try {
+        const res = await fetch('/api/reports');
+        allReports = await res.json();
+        renderReportsList(allReports);
+        $('report-count-pill').textContent = `${allReports.length} report${allReports.length !== 1 ? 's' : ''}`;
+      } catch (e) {
+        $('reports-list').innerHTML = `<div id="no-files">Could not load reports.<br>Is Flask running?</div>`;
+      }
+    }
+
+    function renderReportsList(reports) {
+      if (!reports.length) {
+        $('reports-list').innerHTML = `<div id="no-files">No reports yet.<br><br><code style="color:var(--accent)">python -m my_project.main</code></div>`;
+        return;
+      }
+
+      // Group by category
+      const grouped = {};
+      reports.forEach(r => {
+        const cat = r.category || 'General';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(r);
+      });
+
+      let html = '';
+      let index = 0;
+      for (const cat in grouped) {
+        html += `<div class="category-header" style="margin: 16px 0 8px 12px; font-family: var(--font-mono); font-size: 11px; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.05em;">${cat}</div>`;
+        html += grouped[cat].map(r => `
+    <div class="report-item fade-up ${r.slug === activeSlug ? 'active' : ''}"
+         data-slug="${r.slug}" style="animation-delay:${index++ * 25}ms" data-category="${r.category}">
+      <div class="ri-date">${r.date_short || r.date}${r.day ? `<span class="ri-day">${r.day}</span>` : ''}</div>
+      <div class="ri-title">Frontend Digest</div>
+      <div class="ri-preview">${r.preview || 'No preview'}</div>
+      <div class="ri-meta">
+        ${r.site_count ? `<span class="ri-badge">◈ ${r.site_count} sites</span>` : ''}
+        <span class="ri-badge">${r.size_kb}kb</span>
+      </div>
+    </div>`).join('');
+      }
+
+      $('reports-list').innerHTML = html;
+      $('reports-list').querySelectorAll('.report-item').forEach(el =>
+        el.addEventListener('click', () => openReport(el.dataset.slug, el.dataset.category)));
+    }
+
+    // Tabs logic
+    document.querySelectorAll('.stab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        if (activeTab === tab) return;
+        activeTab = tab;
+        document.querySelectorAll('.stab').forEach(b => b.classList.toggle('active', b === btn));
+        ['reports', 'stats', 'analyze', 'search'].forEach(t => {
+          const el = $(`tab-${t}`);
+          if (el) el.style.display = t === tab ? '' : 'none';
+        });
+        if (tab === 'stats') loadStats();
+      });
+    });
+
+    $('btn-live-analyze').addEventListener('click', () => {
+      const url = $('live-url-input').value.trim();
+      if (!url) return alert('Please enter a URL');
+      if (!url.startsWith('http')) return alert('URL must start with http:// or https://');
+      analyzeLive(url);
+    });
+
+    $('btn-deep-research').addEventListener('click', () => {
+      const url = $('live-url-input').value.trim();
+      if (!url) return alert('Please enter a URL');
+      if (!url.startsWith('http')) return alert('URL must start with http:// or https://');
+      researchLive(url);
+    });
+
+    $('live-url-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') $('btn-live-analyze').click();
+    });
+
+
+    // Open a report
+    async function openReport(slug, category) {
+      if (activeSlug === slug) return;
+      activeSlug = slug;
+      viewingRaw = false;
+      document.querySelectorAll('.report-item').forEach(el =>
+        el.classList.toggle('active', el.dataset.slug === slug));
+      $('empty-state').style.display = 'none';
+      $('report-view').style.display = 'flex';
+      $('md-content').innerHTML = '<div style="display:flex;justify-content:center;padding:44px"><div class="spinner"></div></div>';
+      updateChatContext();
+      try {
+        const res = await fetch(`/api/report/${slug}`);
+        if (!res.ok) throw new Error('Not found');
+        const data = await res.json();
+        rawMd = data.content;
+        $('report-date-display').textContent = `${data.date}${data.day ? ' — ' + data.day : ''}`;
+        $('report-title-display').textContent = 'Frontend Digest' + (category && category !== 'General' && category !== 'undefined' ? ` • ${category}` : '');
+        // Clean up site names (remove markdown links/bolding for the chip display)
+        const cleanSites = data.sites.map(s => {
+          const url = extractUrl(s);
+          const nameMatch = s.match(/(?:\[\d+\]\s+)?([^🎨*]+)/); // Extract name before emoji/bolding
+          const name = nameMatch ? nameMatch[1].trim() : s;
+          return `<span class="site-chip" data-url="${url}" title="Analyze ${url}">${name} 🔬</span>`;
+        });
+        $('report-sites-list').innerHTML = cleanSites.join('');
+        renderMarkdown(rawMd);
+      } catch (e) {
+        $('md-content').innerHTML = `<div style="color:var(--accent3);font-family:var(--font-mono);font-size:12px;padding:28px">Error: ${e.message}</div>`;
+      }
+    }
+
+    function renderMarkdown(md) {
+      marked.setOptions({ breaks: true, gfm: true });
+      $('md-content').innerHTML = marked.parse(md);
+      $('md-content').querySelectorAll('pre code').forEach(block => {
+        hljs.highlightElement(block);
+        const lang = block.className.match(/language-(\w+)/)?.[1];
+        if (lang) {
+          const lbl = document.createElement('span');
+          lbl.className = 'code-lang-label'; lbl.textContent = lang;
+          block.parentElement.appendChild(lbl);
+        }
+      });
+      $('md-content').querySelectorAll('a').forEach(a => { if (a.href.startsWith('http')) a.target = '_blank'; });
+      // Analyze buttons
+      $('report-sites-list').querySelectorAll('.site-chip').forEach(chip => {
+        chip.style.cursor = 'pointer';
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const url = chip.dataset.url || prompt('Enter site URL to analyze:');
+          if (url) analyzeLive(url);
+        });
+      });
+      $('report-body').scrollTop = 0;
+      $('md-content').classList.add('fade-up');
+    }
+
+    $('btn-raw').addEventListener('click', () => {
+      viewingRaw = !viewingRaw;
+      if (viewingRaw) {
+        $('md-content').innerHTML = `<pre style="white-space:pre-wrap;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);line-height:1.6">${escHtml(rawMd)}</pre>`;
+        $('btn-raw').style.cssText = 'border-color:var(--accent);color:var(--accent)';
+      } else { renderMarkdown(rawMd); $('btn-raw').style.cssText = ''; }
+    });
+    $('btn-copy').addEventListener('click', () => {
+      navigator.clipboard.writeText(rawMd).then(() => {
+        $('btn-copy').textContent = '✓ Copied';
+        setTimeout(() => { $('btn-copy').innerHTML = '⎘ Copy'; }, 2000);
+      });
+    });
+
+    // Live analyze
+    window.analyzeLive = async (url) => {
+      console.log("🚀 Starting Live Analysis for:", url);
+      $('analyze-url').textContent = url;
+      $('analyze-loading').style.display = 'block';
+      $('analyze-results').style.opacity = '0';
+      $('analyze-modal').style.display = 'flex';
+      try {
+        const res = await fetch(`/api/analyze?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        console.log("✅ Analysis complete:", data);
+        renderAnalyzeResults(data, url);
+      } catch (e) {
+        console.error("❌ Analysis failed:", e);
+        $('analyze-results').innerHTML = `<div style="color:var(--accent3);padding:20px;text-align:center;font-family:var(--font-mono);font-size:14px;">Error: ${e.message}</div>`;
+      }
+      $('analyze-loading').style.display = 'none';
+      setTimeout(() => $('analyze-results').style.opacity = '1', 100);
+    };
+
+    function renderAnalyzeResults(data, url) {
+      const libs = data.fingerprint || 'None detected';
+      const patterns = data.css_patterns || 'None found';
+      $('analyze-results').innerHTML = `
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-bottom:12px;">Source Preview (Combined):</div>
+        <pre style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;height:120px;overflow-y:auto;margin-bottom:20px;color:var(--text-muted);">${escHtml(data.source)}</pre>
+        <div style="display:grid;grid-template-columns: 1fr 1fr; gap:24px;">
+          <div style="background:rgba(255,255,255,0.03);padding:16px;border-radius:8px;border:1px solid var(--border);">
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:10px;color:var(--accent2);display:flex;align-items:center;gap:8px;">
+               <span style="font-size:18px;">📦</span> Libraries & Stack
+            </div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--text-muted);">${libs.replace(/\n/g, '<br>')}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);padding:16px;border-radius:8px;border:1px solid var(--border);">
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:10px;color:var(--accent);display:flex;align-items:center;gap:8px;">
+               <span style="font-size:18px;">🎨</span> CSS Patterns
+            </div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--text-muted);">${patterns.replace(/\n\n/g, '</div><div style="margin-top:10px;">').replace(/\n/g, '<br>')}</div>
+          </div>
+        </div>
+        <div style="margin-top:30px;padding-top:16px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between;align-items:center;">
+          <div><a href="${url}" target="_blank" style="color:var(--accent2);text-decoration:none;">🌐 View Live Site</a></div>
+          <div>Cache active (1h) · <button onclick="clearAnalyzeCache('${url.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--accent3);font-family:inherit;cursor:pointer;font-size:11px;text-decoration:underline;">Flush Cache</button></div>
+        </div>
+      `;
+    }
+
+    window.clearAnalyzeCache = async (url) => {
+      if (!confirm('Clear cache for this site?')) return;
+      try {
+        await fetch(`/api/analyze/cache?url=${encodeURIComponent(url)}`, { method: 'DELETE' });
+        analyzeLive(url);
+      } catch (e) { alert('Error clearing cache'); }
+    };
+
+    window.researchLive = async (url) => {
+      console.log("🧠 Starting Deep AI Research for:", url);
+      $('analyze-url').textContent = url;
+      $('analyze-loading').style.display = 'block';
+      $('analyze-results').style.opacity = '1';
+      $('analyze-modal').style.display = 'flex';
+      $('analyze-results').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-family:var(--font-mono);font-size:13px;">Deploying AI Analyst Agent...<br><br><div class="spinner" style="margin:auto"></div><br>Reading source code and writing report.<br>This may take 30-60 seconds.</div>';
+      try {
+        const res = await fetch('/api/research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        renderDeepResearch(data.report, url);
+      } catch (e) {
+        $('analyze-results').innerHTML = `<div style="color:var(--accent3);padding:20px;text-align:center;font-family:var(--font-mono);font-size:14px;">Error: ${e.message}</div>`;
+      }
+      $('analyze-loading').style.display = 'none';
+    };
+
+    function renderDeepResearch(report, url) {
+      $('analyze-results').innerHTML = `
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:15px;color:var(--accent2);display:flex;justify-content:space-between;">
+           AI Analyst Deep Dive
+           <span style="font-size:10px;font-family:var(--font-mono);font-weight:400;color:var(--text-dim);">Live Response</span>
+        </div>
+        <div class="md-content-mini" style="font-size:13px;line-height:1.7;overflow-y:auto;max-height:55vh;padding:10px;background:rgba(255,255,255,0.01);border:1px solid var(--border);border-radius:6px;">
+          ${marked.parse(report)}
+        </div>
+        <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;">
+          <a href="${url}" target="_blank" style="color:var(--accent);font-family:var(--font-mono);font-size:11px;text-decoration:none;">🌐 Open Site</a>
+          <button id="btn-copy-research" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:11px;">⎘ Copy Report</button>
+        </div>
+      `;
+      $('btn-copy-research').onclick = () => {
+        navigator.clipboard.writeText(report);
+        $('btn-copy-research').textContent = '✓ Copied';
+        setTimeout(() => $('btn-copy-research').textContent = '⎘ Copy Report', 2000);
+      };
+    }
+
+    $('close-analyze').onclick = () => { $('analyze-modal').style.display = 'none'; };
+    $('analyze-modal').onclick = (e) => { if (e.target === $('analyze-modal')) $('analyze-modal').style.display = 'none'; };
+
+    function extractUrl(text) {
+      const match = text.match(/https?:\/\/[^\s)]+/);
+      return match ? match[0] : '';
+    }
+
+    // Stats
+    let statsLoaded = false;
+    async function loadStats() {
+      if (statsLoaded) return;
+      try {
+        const res = await fetch('/api/stats');
+        const data = await res.json();
+        statsLoaded = true;
+        const maxC = data.top_libraries.length ? Math.max(...data.top_libraries.map(l => l.count)) : 1;
+        $('stats-panel').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="stat-block"><div class="stat-label">Reports</div><div class="stat-number">${data.total_reports}</div><div class="stat-sub">digests</div></div>
+        <div class="stat-block"><div class="stat-label">Sites</div><div class="stat-number">${data.total_sites}</div><div class="stat-sub">analyzed</div></div>
+      </div>
+      ${data.latest ? `<div class="stat-block" style="margin-bottom:10px"><div class="stat-label">Latest</div><div style="font-family:var(--font-display);font-size:14px;font-weight:700;margin-top:3px">${data.latest}</div></div>` : ''}
+      ${data.top_libraries.length ? `<div class="stat-block"><div class="stat-label" style="margin-bottom:10px">Top Libraries</div>
+        ${data.top_libraries.map(l => `<div class="lib-bar-row"><span class="lib-name">${l.name}</span><div class="lib-bar-wrap"><div class="lib-bar" style="width:${Math.round((l.count / maxC) * 100)}%"></div></div><span class="lib-count">${l.count}</span></div>`).join('')}
+      </div>`: ''}`;
+      } catch (e) { $('stats-panel').innerHTML = `<div class="no-results">Could not load stats.</div>`; }
+    }
+
+    // Search
+    $('search').addEventListener('input', e => {
+      const q = e.target.value.trim();
+      clearTimeout(searchTimeout);
+      if (!q) {
+        document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+        qs('.stab[data-tab="reports"]').classList.add('active');
+        $('tab-reports').style.display = ''; $('tab-stats').style.display = 'none'; $('tab-search').style.display = 'none';
+        activeTab = 'reports'; return;
+      }
+      searchTimeout = setTimeout(async () => {
+        document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+        ['reports', 'stats', 'analyze'].forEach(t => $(`tab-${t}`).style.display = 'none');
+        $('tab-search').style.display = '';
+        activeTab = 'search';
+        $('search-results-panel').innerHTML = '<div style="padding:20px;text-align:center"><div class="spinner"></div></div>';
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+          const results = await res.json();
+          if (!results.length) { $('search-results-panel').innerHTML = `<div class="no-results">No results for "<strong>${escHtml(q)}</strong>"</div>`; return; }
+          $('search-results-panel').innerHTML = `
+        <div style="padding:6px 12px;font-family:var(--font-mono);font-size:9px;color:var(--text-dim)">${results.length} match${results.length !== 1 ? 'es' : ''}</div>
+        ${results.map(r => `<div class="sr-item fade-up" data-slug="${r.slug}">
+          <div class="sr-date">${r.date}</div>
+          <div style="font-family:var(--font-display);font-size:12px;font-weight:700">Frontend Digest</div>
+          ${r.matches.map(m => `<div class="sr-match">${hlText(m, q)}</div>`).join('')}
+        </div>`).join('')}`;
+          $('search-results-panel').querySelectorAll('.sr-item').forEach(el =>
+            el.addEventListener('click', () => openReport(el.dataset.slug)));
+        } catch (e) { $('search-results-panel').innerHTML = `<div class="no-results">Search failed.</div>`; }
+      }, 280);
+    });
+
+    // ── Chat ──────────────────────────────────────────────────────
+    function updateChatContext() {
+      const useAll = chatScopeAll || !activeSlug;
+      if (!useAll && activeSlug) {
+        $('chat-context-badge').textContent = activeSlug.replace('frontend_digest_', '');
+        $('scope-label').textContent = 'current report';
+        $('chat-scope-toggle').textContent = 'Switch to all';
+      } else {
+        $('chat-context-badge').textContent = 'All reports';
+        $('scope-label').textContent = 'all reports';
+        $('chat-scope-toggle').textContent = activeSlug ? 'This report only' : 'All reports';
+      }
+    }
+
+    $('chat-toggle-btn').addEventListener('click', () => {
+      chatOpen = !chatOpen;
+      $('chat-panel').classList.toggle('hidden', !chatOpen);
+      $('chat-toggle-btn').classList.toggle('active', chatOpen);
+      $('chat-resizer').style.display = chatOpen ? 'block' : 'none';
+    });
+
+    $('chat-scope-toggle').addEventListener('click', () => {
+      if (!activeSlug) return;
+      chatScopeAll = !chatScopeAll;
+      chatHistory = [];
+      updateChatContext();
+      appendMessage('assistant', `Switched scope to **${chatScopeAll ? 'all reports' : 'current report'}**. History cleared — ask away!`);
+    });
+
+    document.querySelectorAll('.suggestion-chip').forEach(chip =>
+      chip.addEventListener('click', () => {
+        $('chat-input').value = chip.dataset.q;
+        $('chat-input').dispatchEvent(new Event('input'));
+        sendChat();
+      })
+    );
+
+    $('chat-input').addEventListener('input', () => {
+      const ta = $('chat-input');
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 96) + 'px';
+      $('chat-send').disabled = !ta.value.trim();
+    });
+    $('chat-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!$('chat-send').disabled) sendChat(); }
+    });
+    $('chat-send').addEventListener('click', sendChat);
+
+    function appendMessage(role, content) {
+      const wrap = document.createElement('div');
+      wrap.className = `chat-msg ${role}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble';
+      if (role === 'assistant') {
+        marked.setOptions({ breaks: true, gfm: true });
+        bubble.innerHTML = marked.parse(content);
+        bubble.querySelectorAll('pre code').forEach(b => hljs.highlightElement(b));
+        bubble.querySelectorAll('a').forEach(a => { if (a.href.startsWith('http')) a.target = '_blank'; });
+      } else {
+        bubble.textContent = content;
+      }
+      wrap.innerHTML = `<div class="chat-msg-role">${role === 'user' ? 'You' : 'Digest AI'}</div>`;
+      wrap.appendChild(bubble);
+      $('chat-messages').appendChild(wrap);
+      $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+    }
+
+    function showTyping() {
+      const wrap = document.createElement('div');
+      wrap.className = 'chat-msg assistant'; wrap.id = 'typing-wrap';
+      wrap.innerHTML = `<div class="chat-msg-role">Digest AI</div>
+    <div class="typing-indicator">
+      <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+    </div>`;
+      $('chat-messages').appendChild(wrap);
+      $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
+    }
+    function removeTyping() { const el = $('typing-wrap'); if (el) el.remove(); }
+
+    async function sendChat() {
+      const input = $('chat-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      if (!chatScopeAll && !activeSlug) {
+        appendMessage('assistant', '⚠️ Please open a report first, or switch scope to **all reports**.');
+        return;
+      }
+
+      input.value = ''; input.style.height = 'auto'; $('chat-send').disabled = true;
+      $('chat-suggestions').style.display = 'none';
+      appendMessage('user', message);
+      chatHistory.push({ role: 'user', content: message });
+      showTyping();
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            slug: (chatScopeAll || !activeSlug) ? null : activeSlug,
+            history: chatHistory.slice(0, -1),
+          }),
+        });
+        removeTyping();
+        const data = await res.json();
+        const reply = data.error ? `⚠️ ${data.error}` : data.reply;
+        appendMessage('assistant', reply);
+        if (!data.error) chatHistory.push({ role: 'assistant', content: reply });
+      } catch (e) {
+        removeTyping();
+        appendMessage('assistant', `⚠️ Network error: ${e.message}`);
+      }
+    }
+
+    // Init
+    $('today-pill').textContent = new Date().toLocaleDateString('en', { month: 'short', day: 'numeric' });
+    updateChatContext();
+    // Load initial data
+    loadReports();
+    setTimeout(() => { if (allReports.length > 0) openReport(allReports[0].slug); }, 500);
+
+    // ── Resizer Logic ──────────────────────────────
+    const resizer = $('chat-resizer');
+    resizer.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      isResizing = true;
+      document.body.style.cursor = 'col-resize';
+      resizer.classList.add('is-resizing');
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!isResizing) return;
+      // Calculate new width: viewport width - mouse X position
+      let newWidth = window.innerWidth - e.clientX;
+      if (newWidth < 250) newWidth = 250; // min width
+      if (newWidth > 800) newWidth = 800; // max width
+      document.documentElement.style.setProperty('--chat-w', newWidth + 'px');
+    });
+
+    document.addEventListener('mouseup', function (e) {
+      if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = '';
+        resizer.classList.remove('is-resizing');
+      }
+    });
+
+  </script>
+</body>
+
+</html>

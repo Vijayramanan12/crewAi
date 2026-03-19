@@ -1,0 +1,12 @@
+analyze_live_task:
+  description: >
+    Visit {url} and perform a comprehensive analysis of its frontend code.
+    Identify: 1. Core technology stack (frameworks, build tools),
+    2. CSS/Stlying patterns (unique or modern),
+    3. Animation techniques (libraries, custom keyframes),
+    4. Any experimental web APIs or unique solutions used.
+    BE VERY TECHNICAL. Provide illustrative code snippets for each major finding.
+  expected_output: >
+    A detailed technical report about the website's frontend stack, including
+    specific code patterns and design decisions. Formatted in clear Markdown.
+  agent: frontend_analyst

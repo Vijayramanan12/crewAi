@@ -1,0 +1,135 @@
+scout_websites_task:
+  description: >
+    Today is {today}. Search the web and find exactly 5 websites that showcase
+    exceptional or unique frontend work in this specific category: {category}
+
+    For each site, search queries like:
+    - "best {category} website design examples"
+    - "beautiful {category} site url"
+    - "unique {category} award winning site"
+
+    IMPORTANT URL RULES:
+    1. You MUST return the ACTUAL website's URL (e.g., https://stripe.com)
+    2. DO NOT return URLs of articles, listicles, or blog posts (no /article/2025/, etc.)
+    3. DO NOT return gallery or award site URLs (e.g., no awwwards.com, no typewolf.com)
+
+    Return a JSON list of exactly 5 items:
+    [
+      {{
+        "url": "https://example.com",
+        "name": "Site Name",
+        "category": "{category}",
+        "reason": "Why this site is worth analyzing"
+      }},
+      ...
+    ]
+
+    Avoid:
+    - Sites you've already seen in recent reports (check knowledge/ folder)
+    - Generic template-based sites
+    - Sites that are down or require login
+    - ANY URL containing /blog/, /article/, /2025/, /2026/
+  expected_output: >
+    A JSON array of exactly 5 website objects, each with url, name, category,
+    and reason fields. No duplicates. All URLs MUST be the direct root domain of the site being featured, NOT an article about the site. All URLs must be publicly accessible.
+  agent: web_scout
+
+analyze_frontend_task:
+  description: >
+    For each website in the provided list, analyze the full frontend source code.
+    
+    IMPORTANT: You MUST follow these steps IN ORDER for each URL:
+
+    STEP 1: Call `fetch_frontend_source` with the URL string.
+    Wait for the RESULT (it will be a long text string containing HTML/CSS/JS).
+    
+    STEP 2: Take that RESULT TEXT STRING and pass it directly to `fingerprint_libraries`.
+    The argument `html_source` must be the actual text you received, not a function call.
+    
+    STEP 3: Take that same RESULT TEXT STRING from Step 1 and pass it to `extract_css_patterns`.
+    The argument `css_source` must be the actual text you received, not a function call.
+    
+    STEP 4: Combine all findings into a structured analysis for that site.
+    
+    Repeat Steps 1-4 for each of the 5 URLs.
+    
+    For each site analyze:
+    1. HTML STRUCTURE - Semantic choices, custom Web Components, data attributes
+    2. CSS TECHNIQUES - Layout tricks, animations, @layer, container queries, :has(), @property
+    3. JAVASCRIPT & LIBRARIES - Framework detection, animation libs, 3D/Canvas, scroll rigs
+    4. EXPERIMENTAL APIS - View Transitions, Web Animations, CSS Houdini, Scroll Timeline
+    5. WOW FACTOR - One sentence on what makes this site technically memorable
+
+  expected_output: >
+    A JSON array of 5 analysis objects, each containing:
+    {{
+      "url": "string",
+      "name": "string",
+      "stack": {{ "framework": "string", "css": "string", "bundler": "string" }},
+      "libraries": ["list of detected libraries"],
+      "unique_css": ["list of notable CSS techniques with brief descriptions"],
+      "unique_js": ["list of notable JS patterns with brief descriptions"],
+      "experimental_apis": ["any rare or experimental APIs found"],
+      "code_snippet": "one short, interesting code snippet found (if any)",
+      "wow_factor": "one memorable sentence about what makes this site special"
+    }}
+  agent: frontend_analyst
+  context:
+    - scout_websites_task
+
+write_report_task:
+  description: >
+    Using the frontend analysis data provided, write a complete daily report
+    in Markdown format. Today's date is {today}.
+
+    The report must follow this structure:
+
+    # 🌐 Daily Frontend Digest — {today}
+    > A brief 2-line intro about today's theme/category
+
+    ---
+
+    ## [1–5]. Site Name (category badge)
+    **URL**: link  
+    **Stack**: framework + CSS approach + bundler  
+    **Libraries**: comma-separated list  
+
+    ### 🎨 What's Unique
+    2–3 paragraphs describing the standout CSS and JS techniques in plain
+    but technical language. Be specific — name the properties, the patterns.
+
+    ### 💡 Techniques to Learn
+    A short bullet list of 3–5 actionable techniques a developer could
+    learn from this site.
+
+    ### ✨ Wow Factor
+    > Blockquote of the wow factor sentence
+
+    ```css or js
+    (include the code snippet if one was found)
+    ```
+
+    ---
+
+    (repeat for all 5 sites)
+
+    ---
+
+    ## 🔖 Pattern Summary
+    A table of all unique techniques found today across all 5 sites:
+    | Technique | Site | Category |
+    |-----------|------|----------|
+
+    ## 📈 Trend of the Day
+    2–3 sentences on what pattern or technique appeared most across today's sites.
+
+    Save this report to the knowledge/ folder as: frontend_digest_{category}_{today}.md
+  expected_output: >
+    A complete, well-formatted Markdown document saved as
+    knowledge/frontend_digest_{category}_{today}.md — covering all 5 sites with
+    structured sections, code snippets, and a pattern summary table.
+  agent: doc_writer
+  context:
+    - scout_websites_task
+    - analyze_frontend_task
+  output_file: "knowledge/frontend_digest_{category}_{today}.md"
