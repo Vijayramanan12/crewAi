@@ -1,4 +1,3 @@
-```markdown
 # 🌐 Daily Frontend Digest — 2026-03-18
 
 ---
