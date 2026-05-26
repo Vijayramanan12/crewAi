@@ -18,7 +18,6 @@ CACHE_DIR = Path(__file__).parent / 'cache'
 CACHE_DIR.mkdir(exist_ok=True)
 CACHE_TTL = timedelta(hours=1)
 
-# ── Module Level Tools ──────────────────────────────
 _FETCH = FetchFrontendSourceTool()
 _FINGERPRINT = LibraryFingerprintTool()
 _CSS = CSSPatternExtractorTool()
@@ -54,7 +53,7 @@ def analyze_url(url: str):
     """Run all 3 tools on URL, with caching. Returns dict of results."""
     results = {}
     
-    # 1. Fetch source
+    # Fetch source
     cached = get_cached(url, 'fetch')
     if cached:
         source = cached
@@ -62,7 +61,7 @@ def analyze_url(url: str):
         source = _FETCH._run(url)
         set_cached(url, 'fetch', source)
     
-    # 2. Fingerprint
+    # Fingerprint
     cached_fp = get_cached(url, 'fingerprint')
     if cached_fp:
         fp_result = cached_fp
@@ -70,7 +69,7 @@ def analyze_url(url: str):
         fp_result = _FINGERPRINT._run(source)
         set_cached(url, 'fingerprint', fp_result)
     
-    # 3. CSS patterns
+    # CSS patterns
     cached_css = get_cached(url, 'css')
     if cached_css:
         css_result = cached_css

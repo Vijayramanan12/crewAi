@@ -6,14 +6,8 @@ import re
 import json
 from urllib.parse import urljoin, urlparse
 
-
-# ─────────────────────────────────────────────
-# Tool 1: Raw HTML + CSS + JS Fetcher
-# ─────────────────────────────────────────────
-
 class FetchFrontendInput(BaseModel):
     url: str = Field(..., description="The full URL of the website to fetch and analyze")
-
 
 class FetchFrontendSourceTool(BaseTool):
     name: str = "fetch_frontend_source"
@@ -43,9 +37,8 @@ class FetchFrontendSourceTool(BaseTool):
         base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
         result_parts = [f"=== HTML SOURCE: {url} ===\n{html[:3000]}\n"]
 
-        # Extract and fetch linked CSS files
         css_links = re.findall(r'<link[^>]+rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\']', html)
-        for href in css_links[:3]:  # limit to 3 CSS files
+        for href in css_links[:3]:  # Limit to first 3 CSS files to avoid overload
             css_url = href if href.startswith("http") else urljoin(base_url, href)
             try:
                 css_resp = httpx.get(css_url, headers=headers, timeout=10, follow_redirects=True)
@@ -53,7 +46,6 @@ class FetchFrontendSourceTool(BaseTool):
             except Exception as e:
                 result_parts.append(f"\n=== CSS FILE: {css_url} === ERROR: {e}\n")
 
-        # Extract and fetch linked JS files (first 3 non-vendor)
         js_links = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', html)
         non_vendor = [j for j in js_links if not any(v in j for v in ["analytics", "gtag", "fbq", "hotjar"])]
         for src in non_vendor[:2]:
@@ -65,11 +57,6 @@ class FetchFrontendSourceTool(BaseTool):
                 result_parts.append(f"\n=== JS FILE: {js_url} === ERROR: {e}\n")
 
         return "\n".join(result_parts)
-
-
-# ─────────────────────────────────────────────
-# Tool 2: Library & Framework Fingerprinter
-# ─────────────────────────────────────────────
 
 class FingerprintInput(BaseModel):
     html_source: Any = Field(..., description="Raw HTML source string to fingerprint. Must be a plain string of HTML content.")
@@ -84,7 +71,6 @@ class LibraryFingerprintTool(BaseTool):
     )
     args_schema: Type[BaseModel] = FingerprintInput
 
-    # Known signatures: (pattern, human-readable label)
     SIGNATURES: ClassVar[dict[str, str]] = {
         # Frameworks
         "__NEXT_DATA__": "Next.js",
@@ -121,7 +107,6 @@ class LibraryFingerprintTool(BaseTool):
     }
 
     def _run(self, html_source: Any) -> str:
-        # Defensively coerce to string in case LLM passes an object
         if isinstance(html_source, dict):
             html_source = json.dumps(html_source)
         elif not isinstance(html_source, str):
@@ -133,7 +118,6 @@ class LibraryFingerprintTool(BaseTool):
             if signature.lower() in lower and label not in found:
                 found.append(label)
 
-        # Detect experimental CSS APIs
         experimental = []
         if "@layer" in html_source:
             experimental.append("CSS @layer (cascade layers)")
@@ -163,11 +147,6 @@ class LibraryFingerprintTool(BaseTool):
 
         return "\n".join(output)
 
-
-# ─────────────────────────────────────────────
-# Tool 3: CSS Pattern Extractor
-# ─────────────────────────────────────────────
-
 class CSSPatternInput(BaseModel):
     css_source: Any = Field(..., description="Raw CSS source string to analyze for unique patterns. Must be a plain string of CSS content.")
 
@@ -182,7 +161,6 @@ class CSSPatternExtractorTool(BaseTool):
     args_schema: Type[BaseModel] = CSSPatternInput
 
     def _run(self, css_source: Any) -> str:
-        # Defensively coerce to string in case LLM passes an object
         if isinstance(css_source, dict):
             css_source = json.dumps(css_source)
         elif not isinstance(css_source, str):
@@ -214,7 +192,6 @@ class CSSPatternExtractorTool(BaseTool):
 
         for pattern, description in checks:
             if pattern in css:
-                # Try to extract a small snippet
                 idx = css.find(pattern)
                 snippet = css_source[max(0, idx - 20):idx + 60].strip().replace("\n", " ")
                 findings.append(f"- **{description}**\n  `{snippet}...`")

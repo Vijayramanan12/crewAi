@@ -36,17 +36,13 @@ class FrontendDigestCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
-    # ──────────────────────────────────────────
-    # AGENTS
-    # ──────────────────────────────────────────
-
     @agent
     def web_scout(self) -> Agent:
         return Agent(
             config=self.agents_config["web_scout"],
             tools=[
-                SerperDevTool(),        # Web search
-                ScrapeWebsiteTool(),    # Basic page fetch for validation
+                SerperDevTool(),
+                ScrapeWebsiteTool(),  
             ],
             verbose=True,
             max_iter=10,
@@ -57,10 +53,10 @@ class FrontendDigestCrew:
         return Agent(
             config=self.agents_config["frontend_analyst"],
             tools=[
-                FetchFrontendSourceTool(),      # Fetch HTML + linked CSS/JS
-                LibraryFingerprintTool(),        # Detect frameworks & libraries
-                CSSPatternExtractorTool(),       # Extract rare CSS patterns
-                ScrapeWebsiteTool(),             # Fallback general scraper
+                FetchFrontendSourceTool(),
+                LibraryFingerprintTool(),  
+                CSSPatternExtractorTool(),   
+                ScrapeWebsiteTool(),            
             ],
             verbose=True,
             max_iter=15,
@@ -70,13 +66,10 @@ class FrontendDigestCrew:
     def doc_writer(self) -> Agent:
         return Agent(
             config=self.agents_config["doc_writer"],
-            tools=[],   # Pure reasoning + writing — no tools needed
+            tools=[],
             verbose=True,
         )
 
-    # ──────────────────────────────────────────
-    # TASKS
-    # ──────────────────────────────────────────
 
     @task
     def scout_websites_task(self) -> Task:
@@ -108,9 +101,6 @@ class FrontendDigestCrew:
             output_file=f"knowledge/frontend_digest_{category}_{today}.md",
         )
 
-    # ──────────────────────────────────────────
-    # CREW
-    # ──────────────────────────────────────────
 
     @crew
     def crew(self) -> Crew:
@@ -125,6 +115,6 @@ class FrontendDigestCrew:
                 self.analyze_frontend_task(),
                 self.write_report_task(),
             ],
-            process=Process.sequential,  # Scout → Analyze → Write, in order
+            process=Process.sequential,
             verbose=True,
         )

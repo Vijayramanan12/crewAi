@@ -15,10 +15,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Fix: merge consecutive same-role messages for local LLMs ──────────────
-# Local models (LM Studio) use strict Jinja templates that require user and
-# assistant turns to strictly alternate. CrewAI can send consecutive same-role
-# messages during tool calls. This hook merges them before the LLM sees them.
 import litellm
 
 def _fix_role_alternation(kwargs, completion_response=None, start_time=None, end_time=None):
@@ -34,11 +30,9 @@ def _pre_call_fix(kwargs):
     fixed = [messages[0]]
     for msg in messages[1:]:
         if msg.get("role") == fixed[-1].get("role"):
-            # Merge content
             prev_content = fixed[-1].get("content") or ""
             new_content = msg.get("content") or ""
             if isinstance(prev_content, list) or isinstance(new_content, list):
-                # If either is a list (multimodal), just concatenate as strings
                 fixed[-1]["content"] = str(prev_content) + "\n" + str(new_content)
             else:
                 fixed[-1]["content"] = prev_content + "\n" + new_content
@@ -51,9 +45,6 @@ def _pre_call_fix(kwargs):
 
 litellm.callbacks = []
 litellm.input_callback = [_pre_call_fix]
-# ──────────────────────────────────────────────────────────────────────────────
-
-
 
 def validate_env():
     """Check required environment variables before running."""
@@ -106,7 +97,7 @@ def run():
 
     try:
         result = FrontendDigestCrew().crew().kickoff(
-            inputs={"today": today, "category": get_daily_category()},  # category can be used for future expansion (e.g. "mobile", "ecommerce")
+            inputs={"today": today, "category": get_daily_category()},
         )
 
         category = get_daily_category()
@@ -141,8 +132,6 @@ def run_scheduled():
     print("    Press Ctrl+C to stop.\n")
 
     schedule.every().day.at(RUN_AT).do(run)
-
-    # Run immediately on start too
     run()
 
     while True:
@@ -188,10 +177,6 @@ def test():
     except Exception as e:
         raise Exception(f"Test failed: {e}") from e
 
-
-# ──────────────────────────────────────────────────────────────
-# CLI Entry Point
-# ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

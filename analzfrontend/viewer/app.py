@@ -17,14 +17,12 @@ from datetime import datetime
 
 from flask import Flask, jsonify, render_template, abort, request
 
-# ── Dynamic Path Fix (allow importing from src/) ──────────────────
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from tools import analyze_url
 from analz_frontend.live_crew import LiveAnalystCrew
 
 app = Flask(__name__)
 
-# ── Path to knowledge folder (relative to project root) ──────
 BASE_DIR = Path(__file__).parent.parent
 KNOWLEDGE_DIR = BASE_DIR / "knowledge"
 
@@ -41,7 +39,6 @@ def parse_date(filename: str):
 
 def parse_category(filename: str) -> str:
     """Extract category from frontend_digest_{category}_{date}.md"""
-    # Matches letters/hyphens between 'frontend_digest_' and the date part
     match = re.search(r"frontend_digest_([a-zA-Z-]+)_", filename)
     if match:
         return match.group(1).replace("-", " ")
@@ -74,7 +71,6 @@ def get_all_reports():
 
 def extract_preview(content: str, max_chars=200) -> str:
     """Get a plain-text preview from markdown content."""
-    # Strip markdown syntax for preview
     text = re.sub(r"#+\s*", "", content)
     text = re.sub(r"\*\*?([^*]+)\*\*?", r"\1", text)
     text = re.sub(r"`[^`]+`", "", text)
@@ -86,13 +82,8 @@ def extract_preview(content: str, max_chars=200) -> str:
 
 def extract_sites(content: str) -> list:
     """Extract site names from report headings. Handles formats like '## 1.', '## [1]', '## **[1]**' etc."""
-    # Matches headings starting with 1-3 hashes, followed by some numbering pattern, and capturing the text after
     matches = re.findall(r"^#{1,3}\s+(?:[*_\[(]*\d+[*_\]\)\.\s]*)+\s*(.+)$", content, re.MULTILINE)
-    # Clean up any trailing markdown bolding/italics
     return [m.strip(" *-_") for m in matches if m.strip()]
-
-
-# ── Routes ────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -102,7 +93,6 @@ def index():
 @app.route("/api/reports")
 def api_reports():
     reports = get_all_reports()
-    # Enrich with preview
     for r in reports:
         path = KNOWLEDGE_DIR / r["filename"]
         try:
@@ -147,7 +137,6 @@ def api_search():
             content = f.read_text(encoding="utf-8")
             if query in content.lower():
                 date_obj = parse_date(f.name)
-                # Find matching lines for context
                 matches = []
                 for line in content.splitlines():
                     if query in line.lower():
@@ -215,12 +204,9 @@ def api_chat():
     body = request.get_json(force=True)
     user_message = body.get("message", "").strip()
     slug = body.get("slug")  # None = chat across all reports
-    history = body.get("history", [])  # prior turns [{"role":..,"content":..}]
-
+    history = body.get("history", [])
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
-
-    # ── Build context from report(s) ──────────────────────
 
     context_md = ""
     if slug:
@@ -231,7 +217,6 @@ def api_chat():
         else:
             return jsonify({"error": "Report not found"}), 404
     else:
-        # Load all reports, newest first, cap at ~40k chars
         files = sorted(
             KNOWLEDGE_DIR.glob("frontend_digest_*.md"),
             key=lambda f: parse_date(f.name),
@@ -260,18 +245,16 @@ Keep responses concise but precise. Use markdown formatting for code snippets.
 {context_md}
 --- REPORT CONTENT END ---"""
 
-    # ── Build message history ─────────────────────────────
     messages = [{"role": "system", "content": system_prompt}]
     for turn in history[-10:]:  # keep last 10 turns for context window
         if turn.get("role") in ("user", "assistant"):
             messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": user_message})
 
-    # ── Call OpenAI API ────────────────────────────────
     try:
         client = openai.OpenAI(
-        api_key="sk-no-key-needed",
-        base_url="http://127.0.0.1:1234/v1"
+        api_key="sk-lm-iVLUG7tC:59HrVlf8knQsZIIsa7sZ",
+        base_url="http://172.20.10.2:1234/v1"
         )
         response = client.chat.completions.create(
         model="ministral-3-3b",
@@ -306,13 +289,8 @@ def api_research():
         return jsonify({"error": "Valid URL required"}), 400
     
     try:
-        # Initialize the AI Analyst Crew
         crew_instance = LiveAnalystCrew().crew()
-        # Trigger the analysis
         result = crew_instance.kickoff(inputs={"url": url})
-        
-        # Save this to a pseudo-report if desired, but for now just return it
-        # return the raw output as markdown
         return jsonify({
             "report": result.raw if hasattr(result, 'raw') else str(result),
             "url": url,
@@ -320,7 +298,6 @@ def api_research():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     print("\n🌐  Frontend Digest Viewer")

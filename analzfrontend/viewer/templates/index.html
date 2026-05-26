@@ -75,7 +75,6 @@
       border-radius: 3px;
     }
 
-    /* Header */
     #header {
       height: var(--header-h);
       border-bottom: 1px solid var(--border);
@@ -205,14 +204,12 @@
       animation: blink 1.4s ease-in-out infinite;
     }
 
-    /* Layout */
     #body {
       display: flex;
       flex: 1;
       overflow: hidden;
     }
 
-    /* Sidebar */
     #sidebar {
       width: var(--sidebar-w);
       border-right: 1px solid var(--border);
@@ -453,7 +450,6 @@
       text-align: center;
     }
 
-    /* Main */
     #main {
       flex: 1;
       overflow: hidden;
@@ -576,7 +572,6 @@
       padding: 28px;
     }
 
-    /* Markdown */
     #md-content {
       max-width: 700px;
       margin: 0 auto;
@@ -755,7 +750,6 @@
       margin: 32px 0;
     }
 
-    /* ── Chat Panel ───────────────────────────────────────────── */
     #chat-resizer {
       width: 5px;
       cursor: col-resize;
@@ -778,7 +772,6 @@
       background: var(--bg2);
       overflow: hidden;
       transition: opacity 0.28s ease;
-      /* removed transition for width so dragging is smooth */
     }
 
     #chat-panel.hidden {
@@ -841,7 +834,6 @@
       color: var(--accent);
     }
 
-    /* Suggestions */
     #chat-suggestions {
       padding: 9px 11px;
       border-bottom: 1px solid var(--border);
@@ -880,7 +872,6 @@
       background: rgba(71, 255, 232, 0.04);
     }
 
-    /* Messages */
     #chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -948,7 +939,6 @@
       border-radius: 8px 8px 8px 3px;
     }
 
-    /* MD inside chat */
     .chat-bubble p {
       font-size: 12.5px;
       margin-bottom: 7px;
@@ -1052,7 +1042,6 @@
       color: var(--text-muted);
     }
 
-    /* Typing indicator */
     .typing-indicator {
       display: flex;
       align-items: center;
@@ -1214,7 +1203,6 @@
 
 <body>
 
-  <!-- Header -->
   <div id="header">
     <div id="logo">🌐 Frontend<span>Digest</span></div>
     <div id="search-wrap">
@@ -1229,10 +1217,8 @@
     </button>
   </div>
 
-  <!-- Body -->
   <div id="body">
 
-    <!-- Sidebar -->
     <div id="sidebar">
       <div id="sidebar-tabs">
         <button class="stab active" data-tab="reports">Reports</button>
@@ -1296,7 +1282,6 @@
       </div>
     </div>
 
-    <!-- Main viewer -->
     <div id="main">
       <div id="empty-state">
         <div class="empty-glyph">◈</div>
@@ -1304,7 +1289,7 @@
         <div class="empty-sub">Select a report from the sidebar, or run the crew to generate your first one.</div>
         <div
           style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:6px;background:var(--bg3);padding:7px 14px;border-radius:5px;border:1px solid var(--border)">
-          python -m my_project.main</div>
+          python -m main.py</div>
       </div>
       <div id="report-view">
         <div id="report-header">
@@ -1322,7 +1307,6 @@
           <div id="md-content"></div>
         </div>
 
-        <!-- Analyze Modal -->
         <div id="analyze-modal"
           style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(13,13,15,0.95);z-index:1000;align-items:center;justify-content:center;padding:20px;">
           <div
@@ -1348,7 +1332,6 @@
       </div>
     </div>
 
-    <!-- Chat Panel -->
     <div id="chat-resizer" style="display: none;"></div>
     <div id="chat-panel" class="hidden">
 
@@ -1509,10 +1492,9 @@
         rawMd = data.content;
         $('report-date-display').textContent = `${data.date}${data.day ? ' — ' + data.day : ''}`;
         $('report-title-display').textContent = 'Frontend Digest' + (category && category !== 'General' && category !== 'undefined' ? ` • ${category}` : '');
-        // Clean up site names (remove markdown links/bolding for the chip display)
         const cleanSites = data.sites.map(s => {
           const url = extractUrl(s);
-          const nameMatch = s.match(/(?:\[\d+\]\s+)?([^🎨*]+)/); // Extract name before emoji/bolding
+          const nameMatch = s.match(/(?:\[\d+\]\s+)?([^🎨*]+)/);
           const name = nameMatch ? nameMatch[1].trim() : s;
           return `<span class="site-chip" data-url="${url}" title="Analyze ${url}">${name} 🔬</span>`;
         });
@@ -1536,7 +1518,6 @@
         }
       });
       $('md-content').querySelectorAll('a').forEach(a => { if (a.href.startsWith('http')) a.target = '_blank'; });
-      // Analyze buttons
       $('report-sites-list').querySelectorAll('.site-chip').forEach(chip => {
         chip.style.cursor = 'pointer';
         chip.addEventListener('click', (e) => {
@@ -1724,7 +1705,6 @@
       }, 280);
     });
 
-    // ── Chat ──────────────────────────────────────────────────────
     function updateChatContext() {
       const useAll = chatScopeAll || !activeSlug;
       if (!useAll && activeSlug) {
@@ -1840,14 +1820,11 @@
       }
     }
 
-    // Init
     $('today-pill').textContent = new Date().toLocaleDateString('en', { month: 'short', day: 'numeric' });
     updateChatContext();
-    // Load initial data
     loadReports();
     setTimeout(() => { if (allReports.length > 0) openReport(allReports[0].slug); }, 500);
 
-    // ── Resizer Logic ──────────────────────────────
     const resizer = $('chat-resizer');
     resizer.addEventListener('mousedown', function (e) {
       e.preventDefault();
@@ -1860,8 +1837,8 @@
       if (!isResizing) return;
       // Calculate new width: viewport width - mouse X position
       let newWidth = window.innerWidth - e.clientX;
-      if (newWidth < 250) newWidth = 250; // min width
-      if (newWidth > 800) newWidth = 800; // max width
+      if (newWidth < 250) newWidth = 250; 
+      if (newWidth > 800) newWidth = 800; 
       document.documentElement.style.setProperty('--chat-w', newWidth + 'px');
     });
 
