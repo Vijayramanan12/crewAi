@@ -1,25 +1,13 @@
-#!/usr/bin/env python
-"""
-Frontend Digest — Daily Runner
-──────────────────────────────
-Run manually:       python -m my_project.main
-Run with scheduler: python -m my_project.main --schedule
-"""
 import argparse
 import os
 import sys
 from datetime import date, datetime
 from pathlib import Path
-
 from dotenv import load_dotenv
 
 load_dotenv()
 
 import litellm
-
-def _fix_role_alternation(kwargs, completion_response=None, start_time=None, end_time=None):
-    pass  # only used as pre-call hook
-
 
 def _pre_call_fix(kwargs):
     """Merge consecutive messages with the same role before sending to LLM."""

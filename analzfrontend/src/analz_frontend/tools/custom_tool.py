@@ -1,5 +1,5 @@
 from crewai.tools import BaseTool
-from typing import Type, Optional, ClassVar, Any
+from typing import Type, ClassVar, Any
 from pydantic import BaseModel, Field
 import httpx
 import re
@@ -38,7 +38,7 @@ class FetchFrontendSourceTool(BaseTool):
         result_parts = [f"=== HTML SOURCE: {url} ===\n{html[:3000]}\n"]
 
         css_links = re.findall(r'<link[^>]+rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\']', html)
-        for href in css_links[:3]:  # Limit to first 3 CSS files to avoid overload
+        for href in css_links[:3]:  # here i limited 3 css files to avoid too much data
             css_url = href if href.startswith("http") else urljoin(base_url, href)
             try:
                 css_resp = httpx.get(css_url, headers=headers, timeout=10, follow_redirects=True)
@@ -72,7 +72,7 @@ class LibraryFingerprintTool(BaseTool):
     args_schema: Type[BaseModel] = FingerprintInput
 
     SIGNATURES: ClassVar[dict[str, str]] = {
-        # Frameworks
+        # frameworks
         "__NEXT_DATA__": "Next.js",
         "__nuxt": "Nuxt.js",
         "astro-island": "Astro",
@@ -85,7 +85,7 @@ class LibraryFingerprintTool(BaseTool):
         "styled-components": "Styled Components",
         "__emotion": "Emotion CSS",
         "css-modules": "CSS Modules",
-        # Animation libraries
+        # animation libraries
         "gsap": "GSAP",
         "ScrollTrigger": "GSAP ScrollTrigger",
         "framer-motion": "Framer Motion",
@@ -94,13 +94,13 @@ class LibraryFingerprintTool(BaseTool):
         "barba-namespace": "Barba.js",
         "motion": "Motion One",
         "anime.js": "Anime.js",
-        # 3D / Canvas
+        # 3D/canvas
         "three.js": "Three.js",
         "THREE": "Three.js",
         "p5.js": "p5.js",
         "pixi": "PixiJS",
         "webgl": "WebGL",
-        # Misc
+        # misc
         "locomotive-scroll": "Locomotive Scroll",
         "swiper": "Swiper.js",
         "splitting": "Splitting.js (text)",

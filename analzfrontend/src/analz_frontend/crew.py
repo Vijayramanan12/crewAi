@@ -25,14 +25,6 @@ from analz_frontend.tools.custom_tool import (
 
 @CrewBase
 class FrontendDigestCrew:
-    """
-    Daily Frontend Digest Crew
-    ──────────────────────────
-    Agent 1 (WebScout)         → Discovers 5 unique websites per day
-    Agent 2 (FrontendAnalyst)  → Deep-reads their full frontend code
-    Agent 3 (DocWriter)        → Writes a structured daily Markdown report
-    """
-
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
@@ -100,7 +92,6 @@ class FrontendDigestCrew:
             inputs={"today": today, "category": category},
             output_file=f"knowledge/frontend_digest_{category}_{today}.md",
         )
-
 
     @crew
     def crew(self) -> Crew:

@@ -36,8 +36,8 @@ class LiveAnalystCrew:
     @crew
     def crew(self) -> Crew:
         return Crew(
-            agents=self.agents,  # Automatically includes all @agent methods
-            tasks=self.tasks,    # Automatically includes all @task methods
+            agents=self.agents,  # to includes all @agent methods
+            tasks=self.tasks,    # to includes all @task methods
             process=Process.sequential,
             verbose=True
         )

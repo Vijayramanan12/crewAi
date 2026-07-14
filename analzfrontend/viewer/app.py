@@ -1,21 +1,13 @@
-"""
-Frontend Digest Viewer
-──────────────────────
-Flask server that serves the knowledge/ markdown reports
-as a browsable, searchable web interface.
-
-Run:  python viewer/app.py
-Open: http://localhost:5000
-"""
-
 import os
 import re
-import json
 import sys
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_env
 
 from flask import Flask, jsonify, render_template, abort, request
+
+load_env()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 from tools import analyze_url
@@ -24,7 +16,9 @@ from analz_frontend.live_crew import LiveAnalystCrew
 app = Flask(__name__)
 
 BASE_DIR = Path(__file__).parent.parent
-KNOWLEDGE_DIR = BASE_DIR / "knowledge"
+KNOWLEDGE_DIR = BASE_DIR / analzfrontend / "knowledge"
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+BASE_URL = os.environ.get("BASE_URL")
 
 
 def parse_date(filename: str):
@@ -203,7 +197,7 @@ def api_chat():
 
     body = request.get_json(force=True)
     user_message = body.get("message", "").strip()
-    slug = body.get("slug")  # None = chat across all reports
+    slug = body.get("slug") 
     history = body.get("history", [])
     if not user_message:
         return jsonify({"error": "Empty message"}), 400
@@ -246,15 +240,15 @@ Keep responses concise but precise. Use markdown formatting for code snippets.
 --- REPORT CONTENT END ---"""
 
     messages = [{"role": "system", "content": system_prompt}]
-    for turn in history[-10:]:  # keep last 10 turns for context window
+    for turn in history[-10:]:
         if turn.get("role") in ("user", "assistant"):
             messages.append({"role": turn["role"], "content": turn["content"]})
     messages.append({"role": "user", "content": user_message})
 
     try:
         client = openai.OpenAI(
-        api_key="sk-lm-iVLUG7tC:59HrVlf8knQsZIIsa7sZ",
-        base_url="http://172.20.10.2:1234/v1"
+        api_key=OPENAI_API_KEY,
+        base_url=BASE_URL
         )
         response = client.chat.completions.create(
         model="ministral-3-3b",

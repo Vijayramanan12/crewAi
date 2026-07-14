@@ -20,10 +20,10 @@ uv sync
 ## Running
 
 ```bash
-# Generate today's report
+# generate today's report
 python -m analz_frontend.main
 
-# Start the web viewer
+# start the web viewer
 python viewer/app.py
 ```
 
@@ -39,16 +39,16 @@ Open http://localhost:5001 to browse reports.
 
 ```
 analzfrontend/
-├── src/analz_frontend/       # CrewAI crew definition
-│   ├── crew.py              # Main crew
-│   ├── main.py              # Entry point
-│   ├── config/              # Agent & task YAML configs
-│   └── tools/               # Custom tools
-├── viewer/                   # Flask web interface
-│   ├── app.py               # Flask server
-│   └── templates/           # Frontend HTML/CSS/JS
-├── knowledge/               # Generated reports (markdown)
-└── tests/                   # Test suite
+├── src/analz_frontend/       # crewAI crew definition
+│   ├── crew.py              # main crew
+│   ├── main.py              # entry point
+│   ├── config/              # agent & task YAML configs
+│   └── tools/               # custom tools
+├── viewer/                   # flask web interface
+│   ├── app.py               # flask server
+│   └── templates/           # frontend HTML/CSS/JS
+├── knowledge/               # generated reports (markdown)
+└── tests/                   # test suite
 ```
 
 ## License
